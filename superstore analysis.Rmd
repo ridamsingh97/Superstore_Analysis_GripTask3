@@ -1,0 +1,374 @@
+---
+title: "SampleSuperstore Analysis"
+author: "Ridam Pal Singh"
+date: "06/12/2020"
+output: pdf_document
+---
+Importing the required libraries
+```{r}
+library(dplyr)
+library(ggplot2)
+library(corrplot)
+library(flexdashboard)
+library(rmarkdown)
+```
+
+##Reading the datafile
+
+```{r}
+superstore <- read.csv("/Users/ridamsingh/Desktop/SampleSuperstore.csv")
+```
+
+##Some elements of the dataset
+
+```{r}
+glimpse(superstore)
+head(superstore)
+```
+
+##Summary of the data
+
+```{r}
+summary(superstore)
+```
+##Observations
+
+From this we can makeout that there are total of 13 variable in the dataset.
+
+
+##Removing rows with duplicate data
+
+```{r}
+superstore <- distinct(superstore)
+```
+
+##Data Visualisation
+
+1) Histogram and Boxplots for numerical data
+
+```{r}
+ggplot(superstore,aes(x=Sales,fill=Sales)) + geom_histogram(binwidth = 600) + ggtitle("Sales") + xlim(0,5000) + ylim(0,2000)
+ggplot(superstore,aes(x=Sales)) + geom_boxplot()
+
+```
+
+```{r}
+ggplot(superstore,aes(x=Discount)) + geom_histogram(aes(fill='clarity')) + ggtitle("Discount")
+ggplot(superstore,aes(x=Discount)) + geom_boxplot()
+```
+
+
+```{r}
+ggplot(superstore,aes(x=Profit)) + geom_histogram(aes(fill='clarity')) + ggtitle("Profit")  + xlim(-1500,2000)
+ggplot(superstore,aes(x=Profit)) + geom_boxplot()
+```
+
+##Comparing the Sales and Profits
+
+
+```{r}
+ggplot(superstore,aes(Sales)) + geom_density(aes(fill='RED')) + xlim(0,1000) + geom_density(aes(x=Profit))
+```
+##Correlation plots between Sales , Qunatity , Discount and Profit
+
+```{r}
+a <- select(superstore,10:13)
+corrplot(cor(a),method = 'number')
+corrgram::corrgram(a)
+```
+# Observations
+1) We can see a positive correlation between Sales and Profit 
+2) A negative correaltion between Discount and Profit.
+3) The Quantity and Profit do not look related.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+##Correlation plots between each category.
+```{r}
+pairs(a)
+```
+
+Total Sales Analysis 
+
+According to States
+
+```{r}
+statewise_sales <- superstore %>%
+                  group_by(State) %>% 
+                  summarise(Total_Sales= sum(Sales)) %>%
+                  arrange(desc(Total_Sales))
+statewise_sales
+```
+
+Plotting the total sales statewise
+
+```{r}
+ggplot(superstore,aes(x=State,y=Sales,fill=State)) + geom_col() + ggtitle("Total Sales in each State") + coord_flip() + theme(legend.position = 'None' , axis.text.y = element_text(size  = 5))
+```
+
+
+According to Regions
+
+
+```{r}
+region_sales <- superstore %>%
+                  group_by(Region) %>% 
+                  summarise(Total_Region= sum(Sales)) %>%
+                  arrange(desc(Total_Region))
+region_sales
+
+```
+Plotting the sales region wise
+```{r}
+
+
+ggplot(superstore,aes(x=Region,y=Sales,fill=Region)) + geom_col() + ggtitle("Total Sales in each Region") + coord_flip()
+
+```
+
+#Observations
+1) The highest total number of Sales of the SuperStore is done in California followed by New York.
+2)Then the sales are dratically decreasing in other states.
+3)The least sales is seen by States of North Dakota and Virginia.
+4) Most number of sales is done by the West and East Regions of the country.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+##Profit Analysis
+
+Total Profit according to States
+
+```{r}
+statewise_profit <- superstore %>%
+                  group_by(State) %>% 
+                  summarise(Total_Profit= sum(Profit)) %>%
+                  arrange(desc(Total_Profit))
+statewise_profit
+```
+
+
+```{r}
+ggplot(superstore,aes(x=State,y=Profit,fill=State)) + geom_col() + ggtitle("Total Profit in each State") + coord_flip() + theme(legend.position = 'None' , axis.text.y = element_text(size  = 5))
+```
+Region wise analysis of total profit
+
+```{r}
+
+region_profit <- superstore %>%
+                  group_by(Region) %>% 
+                  summarise(Total_RegionP= sum(Profit)) %>%
+                  arrange(desc(Total_RegionP))
+region_profit
+
+
+```
+
+```{r}
+ggplot(superstore,aes(x=Region,y=Profit,fill=Region)) + geom_col() + ggtitle("Total Profit in each Region") + coord_flip()
+```
+
+
+#Observations 
+1) The major profit making States were California and NewYork which also had the most number of Total Sales.
+2) Major loss making states were Texas and Ohio.
+3) The most profitable region for the store is East and West also having the most number of Sales.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+##Citywise Analysis of Sales and Profits
+
+```{r}
+m <- group_by(superstore,City)
+
+n <- m %>% summarise(Profit=sum(Profit),
+                Sales=sum(Sales),
+                Qunatity=sum(Quantity))
+n <- arrange(n,desc(Sales))
+n
+```
+#Observations
+
+1) New York is with maximum Sales , Profit and Quantity.
+2) Philadalphia is the the most loss making city.
+3) Abilene is the city with the least sales.
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+## Analysis of Catogories sold by the store 
+
+```{r}
+table(superstore$Category)
+```
+#Observation
+We can see their are total 3 types of categories sold by the superstore out of which Office supplies is the most sold category.
+
+Now lets get into which category gives more sales,profit and quantity using the mean of these values.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+```{r}
+c <- group_by(superstore,Category)
+
+d <- c %>% summarise(Profit=sum(Profit),
+                Sales=sum(Sales),
+                Qunatity=sum(Quantity))
+d <- arrange(d,desc(Sales))
+d
+```
+
+
+Visualising the above data of categories.
+
+
+```{r}
+par(mfrow=c(1,2))
+pie(d$Profit,labels = d$Category , main = 'Profits with Category',col = rainbow(length(d$Profit)))
+pie(d$Sales,labels = d$Category, main = 'Sales with Category',col = rainbow(length(d$Sales)))
+
+```
+# Observations 
+1) Ofiice Supplies Category is sold in maximum quantity.
+2) Maximum sales and profit that superstore generates comes from Technology Category.
+3) The major revenue driver for the store is the Tecnology Category.
+4) Furniture is the least profitable category in figures.
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+##Analysis of SubCategory
+
+```{r}
+table(superstore$Sub.Category)
+```
+
+
+
+```{r}
+ggplot(superstore,aes(x=Sub.Category,fill=Sub.Category)) + geom_bar() + coord_flip()
+```
+
+
+```{r}
+e <- group_by(superstore,Sub.Category)
+
+f <- e %>% summarise(Profit=sum(Profit),
+                Sales=sum(Sales),
+                Qunatity=sum(Quantity))
+f <- arrange(f,desc(Sales))
+f
+```
+
+
+```{r}
+pie(f$Sales,labels = f$Sub.Category ,radius = 1, main = 'Sales with Sub Category', col = rainbow(length(f$Sales)))
+```
+# Observations
+
+1)The sub category of Binders , Paper , etc. are the most sold which belong to the category of Office Supplies.
+2)Copiers is the least sold sub category.
+3)Though least sold in quantity comparitively, copiers and Machines sub category drive the major sales of the superstore.
+4)Chairs and Phones make the maimum sales in the store.
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+##Shipping Modes
+
+```{r}
+table(superstore$Ship.Mode)
+```
+
+```{r}
+ggplot(superstore,aes(x=Ship.Mode)) + geom_bar(aes(fill='red'))
+```
+
+```{r}
+g <- group_by(superstore,Ship.Mode)
+
+h <- g %>% summarise(Profit=sum(Profit),
+                Sales=sum(Sales),
+                Qunatity=sum(Quantity))
+h <- arrange(h,desc(Sales))
+h
+```
+
+```{r}
+par(mfrow=c(1,2))
+pie(h$Profit,labels = h$Ship.Mode , main = 'Profits with Shipping Mode',col = rainbow(length(h$Profit)))
+pie(h$Sales,labels = h$Ship.Mode, main = 'Sales with Shipping Mode',col = rainbow(length(h$Sales)))
+```
+#Observations
+
+1)Most preferred mode of shipping is the standard class.
+2)The sales generated according to the shipping modes is maximum in standard class.
+3)The profit generated according to the shipping modes is maximum in standard class.
+4)Very less people opt for same day delivery.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+##Segment
+
+```{r}
+table(superstore$Segment)
+
+```
+
+```{r}
+ggplot(superstore,aes(x=Segment,fill=Segment)) + geom_bar()
+```
+
+```{r}
+o <- group_by(superstore,Segment)
+
+p <- o %>% summarise(Profit=sum(Profit),
+                Sales=sum(Sales),
+                Qunatity=sum(Quantity))
+p <- arrange(p,desc(Sales))
+p
+```
+```{r}
+par(mfrow=c(1,2))
+pie(p$Sales,labels = p$Segment , main = 'Sales with Segment',radius=1, col = rainbow(length(p$Sales)))
+pie(p$Profit,labels = p$Segment , main = 'Profit with Segment',radius=1, col = rainbow(length(p$Profit)))
+```
+#  Observations
+
+1) Looking at the count table , it is evident that the consumer segment is the most sold segment.
+2) The most profitable segment is the consumer segement which also drives the major sales of the store.
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+##Quantity Purchased by indivisual customers
+```{r}
+table(superstore$Quantity)
+```
+
+```{r}
+ggplot(superstore,aes(x=Quantity,fill=Quantity)) + geom_bar()
+```
+
+```{r}
+q <- group_by(superstore,Quantity)
+
+r <- q %>% summarise(Profit=sum(Profit),
+                Sales=sum(Sales))
+r <- arrange(r,desc(Sales))
+r
+```
+
+```{r}
+par(mfrow=c(1,2))
+pie(r$Sales,labels = r$Quantity , main = 'Sales with Quantity',radius=1, col = rainbow(length(r$Sales)))
+pie(r$Profit,labels = r$Quantity , main = 'Profit with Quantity',radius=1, col = rainbow(length(r$Profit)))
+```
+# Observations
+
+1) The count table shows that the major quantiy sold is 2,3 or 4 items.
+2) These quantities sold drive major profit and sales of the store.
+3) The highest quantity purchased by any consumer is 14 items.
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
